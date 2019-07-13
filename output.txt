@@ -1,0 +1,68 @@
+{
+        ".\\match.dem": {
+                "file": ".\\match.dem",
+                "valid": true,
+                "map": "de_mirage",
+                "winner": "Counter-Terrorists",
+                "loser": "Terrorists",
+                "score": {
+                        "Counter-Terrorists": 19,
+                        "Terrorists": 17
+                },
+                "start_time": "2019-07-12T23:25:12.4224742+01:00",
+                "end_time": "2019-07-13T00:39:09.820994008+01:00",
+                "state": "finished",
+                "players": {
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 30,
+                                "deaths": 28
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 25,
+                                "deaths": 25
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 12,
+                                "deaths": 28
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 33,
+                                "deaths": 25
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 17,
+                                "deaths": 26
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 32,
+                                "deaths": 26
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 27,
+                                "deaths": 23
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 17,
+                                "deaths": 25
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 33,
+                                "deaths": 24
+                        },
+                        "steam_id_removed_for_privacy": {
+                                "name": "name_removed_for_privacy",
+                                "kills": 22,
+                                "deaths": 22
+                        }
+                }
+        }
+}
