@@ -99,16 +99,14 @@ func parseDemo(filename string, info map[string]demoInfo) {
 	result.Winner = func() string {
 		if result.Score["Counter-Terrorists"] > result.Score["Terrorists"] {
 			return "Counter-Terrorists"
-		} else {
-			return "Terrorists"
 		}
+		return "Terrorists"
 	}()
 	result.Loser = func() string {
 		if result.Score["Counter-Terrorists"] < result.Score["Terrorists"] {
 			return "Counter-Terrorists"
-		} else {
-			return "Terrorists"
 		}
+		return "Terrorists"
 	}()
 
 	info[filename] = result
