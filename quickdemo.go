@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"quickdemo/creation_time"
+	"quickdemo/memory_available"
 	"sync"
 	"syscall"
 	"time"
@@ -31,6 +32,13 @@ type demoInfo struct {
 	End     time.Time            `json:"end_time"`
 	State   string               `json:"state"`
 	Players map[int64]playerInfo `json:"players"`
+}
+
+type demoFile struct {
+	Name    string    `json:"filename"`      // name of file
+	Size    int       `json:"size"`          // size of file
+	Created time.Time `json:"creation_date"` // creation time of file
+	Demo    demoInfo  `json:"demo"`          // parsed demo object
 }
 
 func timespecToTime(ts syscall.Timespec) time.Time {
@@ -122,6 +130,9 @@ func parseArgs() []string {
 }
 
 func main() {
+
+	fmt.Println(memory_available.Get_memory_available())
+	return
 
 	var results = make(map[string]demoInfo)
 
