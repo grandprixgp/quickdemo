@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"quickdemo/creation_time"
-	"quickdemo/memory_available"
+	"quickdemo/file_stats"
+	"quickdemo/memory_stats"
 	"sync"
 	"syscall"
 	"time"
@@ -36,13 +36,28 @@ type demoInfo struct {
 
 type demoFile struct {
 	Name    string    `json:"filename"`      // name of file
-	Size    int       `json:"size"`          // size of file
+	Size    uint64    `json:"size"`          // size of file
 	Created time.Time `json:"creation_date"` // creation time of file
 	Demo    demoInfo  `json:"demo"`          // parsed demo object
 }
 
 func timespecToTime(ts syscall.Timespec) time.Time {
 	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
+}
+
+func parseFile(filename string, demos *[]demoFile) {
+	file, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	var demo demoFile
+	demo.Name = filename
+	demo.Size = memory_stats.GetMemoryAvailable()
+	demo.Created = file_stats.GetCreationTime(filename)
+
+	*demos = append(*demos, demo)
 }
 
 func parseDemo(filename string, info map[string]demoInfo) {
@@ -62,7 +77,7 @@ func parseDemo(filename string, info map[string]demoInfo) {
 	parser := dem.NewParser(demoFile)
 	header, err := parser.ParseHeader()
 
-	result.Start = creation_time.Get_creation_time(filename)
+	result.Start = file_stats.GetCreationTime(filename)
 
 	result.Map = header.MapName
 	result.End = result.Start.Add(header.PlaybackTime)
@@ -129,22 +144,38 @@ func parseArgs() []string {
 	return demos
 }
 
+func use(vals ...interface{}) {
+	for _, val := range vals {
+		_ = val
+	}
+}
+
 func main() {
 
-	fmt.Println(memory_available.Get_memory_available())
-	return
+	var availableMemory = memory_stats.GetMemoryAvailable()
+	var demos = make([]demoFile, len(flag.Args()))
+	var waitGroup sync.WaitGroup
+	var filenames = parseArgs()
 
-	var results = make(map[string]demoInfo)
-
-	var wg sync.WaitGroup
-	demos := parseArgs()
-	for demo := range demos {
-		demoname := demos[demo]
-		wg.Add(1)
-		go func() { parseDemo(demoname, results); wg.Done() }()
+	for _, filename := range filenames {
+		waitGroup.Add(1)
+		go func() { parseFile(filename, &demos); waitGroup.Done() }()
 	}
-	wg.Wait()
+	waitGroup.Wait()
 
-	resultsJSON, _ := json.MarshalIndent(results, "", "\t")
-	fmt.Println(string(resultsJSON))
+	demosJSON, _ := json.MarshalIndent(demos, "", "\t")
+	fmt.Println(string(demosJSON))
+
+	//var results = make(map[string]demoInfo)
+	//for demo := range demos {
+	//	demoname := demos[demo]
+	//	wg.Add(1)
+	//	go func() { parseDemo(demoname, results); wg.Done() }()
+	//}
+	//wg.Wait()
+
+	//resultsJSON, _ := json.MarshalIndent(results, "", "\t")
+
+	use(availableMemory)
+	//fmt.Println(string(resultsJSON))
 }

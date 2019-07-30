@@ -1,6 +1,6 @@
 // +build windows
 
-package memory_available
+package memory_stats
 
 import (
 	"syscall"
@@ -15,8 +15,8 @@ type tMemStatusEx struct {
 	unused2      [5]uint64
 }
 
-// Returns currently available system memory in MB
-func Get_memory_available() uint64 {
+// GetMemoryAvailable Returns currently available system memory in MB
+func GetMemoryAvailable() uint64 {
 	kernel32, err := syscall.LoadDLL("kernel32.dll")
 	if err != nil {
 		return 0

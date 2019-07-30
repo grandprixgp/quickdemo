@@ -1,13 +1,13 @@
 // +build linux
 
-package memory_available
+package memory_stats
 
 import (
 	"syscall"
 )
 
-// Returns currently available system memory in MB
-func Get_memory_available() uint64 {
+// GetMemoryAvailable Returns currently available system memory in MB
+func GetMemoryAvailable() uint64 {
 	sysinfo := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(sysinfo)
 	if err != nil {
