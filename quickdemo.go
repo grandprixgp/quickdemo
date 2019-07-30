@@ -38,62 +38,63 @@ type demoFile struct {
 	Name    string    `json:"filename"`      // name of file
 	Size    uint64    `json:"size"`          // size of file
 	Created time.Time `json:"creation_date"` // creation time of file
-	Demo    demoInfo  `json:"demo"`          // parsed demo object
+	Demo    *demoInfo `json:"demo"`          // parsed demo object
 }
 
 func timespecToTime(ts syscall.Timespec) time.Time {
 	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
 }
 
-func parseFile(filename string, demos *[]demoFile) {
+func parseFile(filename string, demoFiles *[]demoFile, totalSize *uint64) {
 	file, err := os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
 
-	var demo demoFile
-	demo.Name = filename
-	demo.Size = memory_stats.GetMemoryAvailable()
-	demo.Created = file_stats.GetCreationTime(filename)
+	var demoFile demoFile
+	demoFile.Name = filename
+	demoFile.Size = (file_stats.GetSize(filename) / 1024) / 1024
+	demoFile.Created = file_stats.GetCreationTime(filename)
+	demoFile.Demo = &demoInfo{}
 
-	*demos = append(*demos, demo)
+	*demoFiles = append(*demoFiles, demoFile)
+	*totalSize = *totalSize + (demoFile.Size)
 }
 
-func parseDemo(filename string, info map[string]demoInfo) {
+func parseDemo(filename string, demo *demoInfo) {
 	demoFile, err := os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
 	defer demoFile.Close()
 
-	var result demoInfo
-	result.Valid = false
+	demo.Valid = false
 
-	result.File = filename
-	result.Score = make(map[string]int)
-	result.Players = make(map[int64]playerInfo)
+	demo.File = filename
+	demo.Score = make(map[string]int)
+	demo.Players = make(map[int64]playerInfo)
 
 	parser := dem.NewParser(demoFile)
 	header, err := parser.ParseHeader()
 
-	result.Start = file_stats.GetCreationTime(filename)
+	demo.Start = file_stats.GetCreationTime(demo.File)
 
-	result.Map = header.MapName
-	result.End = result.Start.Add(header.PlaybackTime)
+	demo.Map = header.MapName
+	demo.End = demo.Start.Add(header.PlaybackTime)
 
-	if result.Start == result.End {
-		result.State = "live"
+	if demo.Start == demo.End {
+		demo.State = "live"
 	} else {
-		result.State = "finished"
+		demo.State = "finished"
 	}
 
 	parser.RegisterEventHandler(func(e events.ScoreUpdated) {
 		if e.NewScore != 0 {
 			if e.TeamState.ID == 3 {
-				result.Score["Counter-Terrorists"] = e.NewScore
+				demo.Score["Counter-Terrorists"] = e.NewScore
 			} else {
-				result.Score["Terrorists"] = e.NewScore
+				demo.Score["Terrorists"] = e.NewScore
 			}
 		}
 
@@ -107,32 +108,30 @@ func parseDemo(filename string, info map[string]demoInfo) {
 						Kills:  player.AdditionalPlayerInformation.Kills,
 						Deaths: player.AdditionalPlayerInformation.Deaths,
 					}
-					result.Players[player.SteamID] = playerinfo
+					demo.Players[player.SteamID] = playerinfo
 				}
 			}
 		}
 	})
 
 	parser.RegisterEventHandler(func(e events.BombPickup) {
-		result.Valid = true
+		demo.Valid = true
 	})
 
 	parser.ParseToEnd()
 
-	result.Winner = func() string {
-		if result.Score["Counter-Terrorists"] > result.Score["Terrorists"] {
+	demo.Winner = func() string {
+		if demo.Score["Counter-Terrorists"] > demo.Score["Terrorists"] {
 			return "Counter-Terrorists"
 		}
 		return "Terrorists"
 	}()
-	result.Loser = func() string {
-		if result.Score["Counter-Terrorists"] < result.Score["Terrorists"] {
+	demo.Loser = func() string {
+		if demo.Score["Counter-Terrorists"] < demo.Score["Terrorists"] {
 			return "Counter-Terrorists"
 		}
 		return "Terrorists"
 	}()
-
-	info[filename] = result
 }
 
 func parseArgs() []string {
@@ -154,28 +153,51 @@ func main() {
 
 	var availableMemory = memory_stats.GetMemoryAvailable()
 	var demos = make([]demoFile, len(flag.Args()))
+	var totalSize uint64
 	var waitGroup sync.WaitGroup
 	var filenames = parseArgs()
 
 	for _, filename := range filenames {
 		waitGroup.Add(1)
-		go func() { parseFile(filename, &demos); waitGroup.Done() }()
+		go func() { parseFile(filename, &demos, &totalSize); waitGroup.Done() }()
 	}
 	waitGroup.Wait()
 
-	demosJSON, _ := json.MarshalIndent(demos, "", "\t")
+	/* chunk demos to ensure we don't OOM ourselves */
+
+	var demoChunks [][]demoFile
+
+	if (totalSize / availableMemory) >= 1 {
+		chunkCount := totalSize / availableMemory
+		chunkSize := len(demos) / int(chunkCount)
+
+		for i := 0; i < len(demos); i += chunkSize {
+			chunkEnd := i + chunkSize
+
+			if chunkEnd > len(demos) {
+				chunkEnd = len(demos)
+			}
+
+			demoChunks = append(demoChunks, demos[i:chunkEnd])
+		}
+	} else {
+		demoChunks = append(demoChunks, demos)
+	}
+
+	fmt.Printf("Available Memory: %dMB\nTotal Demos Size: %dMB\nChunks: %d\n", availableMemory, totalSize, len(demoChunks))
+
+	for _, demoChunk := range demoChunks {
+		for _, demo := range demoChunk {
+			demo := demo
+			waitGroup.Add(1)
+			go func() {
+				parseDemo(demo.Name, demo.Demo)
+				waitGroup.Done()
+			}()
+		}
+		waitGroup.Wait()
+	}
+
+	demosJSON, _ := json.MarshalIndent(demoChunks, "", "\t")
 	fmt.Println(string(demosJSON))
-
-	//var results = make(map[string]demoInfo)
-	//for demo := range demos {
-	//	demoname := demos[demo]
-	//	wg.Add(1)
-	//	go func() { parseDemo(demoname, results); wg.Done() }()
-	//}
-	//wg.Wait()
-
-	//resultsJSON, _ := json.MarshalIndent(results, "", "\t")
-
-	use(availableMemory)
-	//fmt.Println(string(resultsJSON))
 }
