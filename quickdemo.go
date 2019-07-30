@@ -152,14 +152,16 @@ func use(vals ...interface{}) {
 func main() {
 
 	var availableMemory = memory_stats.GetMemoryAvailable()
-	var demos = make([]demoFile, len(flag.Args()))
+	var demosSlice = make([]demoFile, len(flag.Args()))
+	var demosMap = make(map[string]demoFile)
 	var totalSize uint64
 	var waitGroup sync.WaitGroup
 	var filenames = parseArgs()
 
 	for _, filename := range filenames {
+		filename := filename
 		waitGroup.Add(1)
-		go func() { parseFile(filename, &demos, &totalSize); waitGroup.Done() }()
+		go func() { parseFile(filename, &demosSlice, &totalSize); waitGroup.Done() }()
 	}
 	waitGroup.Wait()
 
@@ -169,22 +171,24 @@ func main() {
 
 	if (totalSize / availableMemory) >= 1 {
 		chunkCount := totalSize / availableMemory
-		chunkSize := len(demos) / int(chunkCount)
+		chunkSize := len(demosSlice) / int(chunkCount)
 
-		for i := 0; i < len(demos); i += chunkSize {
+		for i := 0; i < len(demosSlice); i += chunkSize {
 			chunkEnd := i + chunkSize
 
-			if chunkEnd > len(demos) {
-				chunkEnd = len(demos)
+			if chunkEnd > len(demosSlice) {
+				chunkEnd = len(demosSlice)
 			}
 
-			demoChunks = append(demoChunks, demos[i:chunkEnd])
+			demoChunks = append(demoChunks, demosSlice[i:chunkEnd])
 		}
 	} else {
-		demoChunks = append(demoChunks, demos)
+		demoChunks = append(demoChunks, demosSlice)
 	}
 
 	fmt.Printf("Available Memory: %dMB\nTotal Demos Size: %dMB\nChunks: %d\n", availableMemory, totalSize, len(demoChunks))
+
+	demosSlice = nil
 
 	for _, demoChunk := range demoChunks {
 		for _, demo := range demoChunk {
@@ -192,12 +196,15 @@ func main() {
 			waitGroup.Add(1)
 			go func() {
 				parseDemo(demo.Name, demo.Demo)
+				demosMap[demo.Name] = demo
 				waitGroup.Done()
 			}()
 		}
 		waitGroup.Wait()
 	}
 
-	demosJSON, _ := json.MarshalIndent(demoChunks, "", "\t")
+	demoChunks = nil
+
+	demosJSON, _ := json.MarshalIndent(demosMap, "", "\t")
 	fmt.Println(string(demosJSON))
 }
