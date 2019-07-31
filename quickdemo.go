@@ -89,6 +89,9 @@ func parseDemo(filename string, demo *demoInfo) {
 		demo.State = "finished"
 	}
 
+	// TODO: modify valid/invalid match detection to depend on custom netmessage
+	// TODO: modify finished/live detection to depend on matchend event or custom netmessage
+
 	parser.RegisterEventHandler(func(e events.ScoreUpdated) {
 		if e.NewScore != 0 {
 			if e.TeamState.ID == 3 {
