@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	proto "github.com/gogo/protobuf/proto"
 	dem "github.com/markus-wa/demoinfocs-golang"
 	events "github.com/markus-wa/demoinfocs-golang/events"
+	msg "github.com/markus-wa/demoinfocs-golang/msg"
 )
 
 type playerInfo struct {
@@ -62,7 +64,7 @@ func parseFile(filename string, demoFiles *[]demoFile, totalSize *uint64) {
 	*totalSize = *totalSize + (demoFile.Size)
 }
 
-func parseDemo(filename string, demo *demoInfo) {
+func parseDemo(filename string, demo *demoInfo, cfg dem.ParserConfig) {
 	demoFile, err := os.Open(filename)
 	if err != nil {
 		panic(err)
@@ -75,7 +77,7 @@ func parseDemo(filename string, demo *demoInfo) {
 	demo.Score = make(map[string]int)
 	demo.Players = make(map[int64]playerInfo)
 
-	parser := dem.NewParser(demoFile)
+	parser := dem.NewParserWithConfig(demoFile, cfg)
 	header, err := parser.ParseHeader()
 
 	demo.Start = file_stats.GetCreationTime(demo.File)
@@ -83,14 +85,22 @@ func parseDemo(filename string, demo *demoInfo) {
 	demo.Map = header.MapName
 	demo.End = demo.Start.Add(header.PlaybackTime)
 
-	if demo.Start == demo.End {
-		demo.State = "live"
-	} else {
-		demo.State = "finished"
-	}
-
-	// TODO: modify valid/invalid match detection to depend on custom netmessage
-	// TODO: modify finished/live detection to depend on matchend event or custom netmessage
+	parser.RegisterNetMessageHandler(func(m *msg.CNETMsg_SetConVar) {
+		for _, cvar := range m.Convars.Cvars {
+			if cvar.Name == "sv_matchstarted" {
+				if cvar.Value == "1" {
+					demo.State = "live"
+					demo.Valid = true
+				}
+			}
+			if cvar.Name == "sv_matchfinished" {
+				if cvar.Value == "1" {
+					demo.State = "finished"
+					demo.Valid = true
+				}
+			}
+		}
+	})
 
 	parser.RegisterEventHandler(func(e events.ScoreUpdated) {
 		if e.NewScore != 0 {
@@ -115,10 +125,6 @@ func parseDemo(filename string, demo *demoInfo) {
 				}
 			}
 		}
-	})
-
-	parser.RegisterEventHandler(func(e events.BombPickup) {
-		demo.Valid = true
 	})
 
 	parser.ParseToEnd()
@@ -153,6 +159,13 @@ func use(vals ...interface{}) {
 }
 
 func main() {
+
+	cfg := dem.DefaultParserConfig
+	cfg.AdditionalNetMessageCreators = map[int]dem.NetMessageCreator{
+		6: func() proto.Message {
+			return new(msg.CNETMsg_SetConVar)
+		},
+	}
 
 	var availableMemory = memory_stats.GetMemoryAvailable()
 	var demosSlice = make([]demoFile, len(flag.Args()))
@@ -198,7 +211,7 @@ func main() {
 			demo := demo
 			waitGroup.Add(1)
 			go func() {
-				parseDemo(demo.Name, demo.Demo)
+				parseDemo(demo.Name, demo.Demo, cfg)
 				demosMap[demo.Name] = demo
 				waitGroup.Done()
 			}()
