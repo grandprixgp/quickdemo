@@ -158,7 +158,7 @@ func use(vals ...interface{}) {
 	}
 }
 
-//export
+//export dump
 func dump(a string) string {
 	return a
 }
