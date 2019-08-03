@@ -5,13 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"quickdemo/file_stats"
-	"quickdemo/memory_stats"
 	"sync"
 	"syscall"
 	"time"
 
 	proto "github.com/gogo/protobuf/proto"
+	file_stats "github.com/grandprixgp/file_stats"
+	memory_stats "github.com/grandprixgp/memory_stats"
 	dem "github.com/markus-wa/demoinfocs-golang"
 	events "github.com/markus-wa/demoinfocs-golang/events"
 	msg "github.com/markus-wa/demoinfocs-golang/msg"
@@ -156,6 +156,11 @@ func use(vals ...interface{}) {
 	for _, val := range vals {
 		_ = val
 	}
+}
+
+//export
+func dump(a string) string {
+	return a
 }
 
 func main() {

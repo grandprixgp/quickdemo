@@ -1,0 +1,1 @@
+xgo -buildmode=c-shared --targets=linux/amd64,windows/arm64 github.com/grandprixgp/quickdemo
