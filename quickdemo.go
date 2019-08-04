@@ -161,6 +161,7 @@ func use(vals ...interface{}) {
 
 //export Dump
 func Dump(a *C.char) *C.char {
+	fmt.Println("dump called")
 	return a
 }
 
