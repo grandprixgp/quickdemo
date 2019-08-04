@@ -2,17 +2,17 @@ package main
 
 import (
 	"C"
-	"encoding/json"
+	//"encoding/json"
 	"flag"
-	"fmt"
+	//"fmt"
 	"os"
-	"sync"
+	//"sync"
 	"syscall"
 	"time"
 
-	proto "github.com/gogo/protobuf/proto"
+	//proto "github.com/gogo/protobuf/proto"
 	file_stats "github.com/grandprixgp/file_stats"
-	memory_stats "github.com/grandprixgp/memory_stats"
+	//memory_stats "github.com/grandprixgp/memory_stats"
 	dem "github.com/markus-wa/demoinfocs-golang"
 	events "github.com/markus-wa/demoinfocs-golang/events"
 	msg "github.com/markus-wa/demoinfocs-golang/msg"
