@@ -155,12 +155,6 @@ func parseArgs() string {
 	return demosString
 }
 
-func use(vals ...interface{}) {
-	for _, val := range vals {
-		_ = val
-	}
-}
-
 //export Dump
 func Dump(demoFiles string) *C.char {
 	cfg := dem.DefaultParserConfig

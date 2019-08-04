@@ -1,1 +1,0 @@
-$env:GOOS="windows";$env:GOARCH="amd64"; go build -o build/release/quickdemo.exe; go build -buildmode=c-shared -o "build/release/module/quickdemo-windows.dll"
