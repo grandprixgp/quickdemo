@@ -160,8 +160,8 @@ func use(vals ...interface{}) {
 }
 
 //export Dump
-func Dump(a string) string {
-	return a
+func Dump(a *C.char) string {
+	return C.GoString(a)
 }
 
 func main() {
