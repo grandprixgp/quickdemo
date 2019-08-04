@@ -4,7 +4,7 @@ import (
 	"C"
 	//"encoding/json"
 	"flag"
-	//"fmt"
+	"fmt"
 	"os"
 	//"sync"
 	"syscall"
