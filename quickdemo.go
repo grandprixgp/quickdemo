@@ -2,17 +2,18 @@ package main
 
 import (
 	"C"
-	//"encoding/json"
+	"encoding/json"
 	"flag"
-	//"fmt"
+	"fmt"
 	"os"
-	//"sync"
+	"strings"
+	"sync"
 	"syscall"
 	"time"
 
-	//proto "github.com/gogo/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	file_stats "github.com/grandprixgp/file_stats"
-	//memory_stats "github.com/grandprixgp/memory_stats"
+	memory_stats "github.com/grandprixgp/memory_stats"
 	dem "github.com/markus-wa/demoinfocs-golang"
 	events "github.com/markus-wa/demoinfocs-golang/events"
 	msg "github.com/markus-wa/demoinfocs-golang/msg"
@@ -144,13 +145,14 @@ func parseDemo(filename string, demo *demoInfo, cfg dem.ParserConfig) {
 	}()
 }
 
-func parseArgs() []string {
+func parseArgs() string {
 	var firstDemo string
 	flag.StringVar(&firstDemo, "d", "", "A space seperated list of demos")
 	flag.Parse()
 	demos := flag.Args()
 	demos = append([]string{firstDemo}, demos...)
-	return demos
+	demosString := strings.Join(demos, " ")
+	return demosString
 }
 
 func use(vals ...interface{}) {
@@ -160,81 +162,84 @@ func use(vals ...interface{}) {
 }
 
 //export Dump
-//func Dump(a *C.char) *C.char {
-//	fmt.Println("dump called")
-//	arg := C.GoString(a)
-//	fmt.Println(arg, len(arg))
-//	return a
-//}
+func Dump(demoFiles string) *C.char {
+	cfg := dem.DefaultParserConfig
+	cfg.AdditionalNetMessageCreators = map[int]dem.NetMessageCreator{
+		6: func() proto.Message {
+			return new(msg.CNETMsg_SetConVar)
+		},
+	}
 
-//export Dump
-func Dump(a string) *C.char {
-	return C.CString(a)
+	var availableMemory = memory_stats.GetMemoryAvailable()
+
+	var filenames []string
+	for _, filename := range strings.Fields(demoFiles) {
+		filename := strings.Trim(filename, "\x00")
+		if len(filename) > 0 {
+			filenames = append(filenames, filename)
+		}
+	}
+
+	var demosSlice []demoFile
+	var demosMap = make(map[string]demoFile)
+	var totalSize uint64
+	var waitGroup sync.WaitGroup
+
+	for _, filename := range filenames {
+		filename := filename
+		waitGroup.Add(1)
+		go func() { parseFile(filename, &demosSlice, &totalSize); waitGroup.Done() }()
+	}
+	waitGroup.Wait()
+
+	/* chunk demos to ensure we don't OOM ourselves */
+
+	var demoChunks [][]demoFile
+
+	if (totalSize / availableMemory) >= 1 {
+		chunkCount := totalSize / availableMemory
+		chunkSize := len(demosSlice) / int(chunkCount)
+
+		for i := 0; i < len(demosSlice); i += chunkSize {
+			chunkEnd := i + chunkSize
+
+			if chunkEnd > len(demosSlice) {
+				chunkEnd = len(demosSlice)
+			}
+
+			demoChunks = append(demoChunks, demosSlice[i:chunkEnd])
+		}
+	} else {
+		demoChunks = append(demoChunks, demosSlice)
+	}
+
+	demosSlice = nil
+
+	for _, demoChunk := range demoChunks {
+		for _, demo := range demoChunk {
+			demo := demo
+			waitGroup.Add(1)
+			go func() {
+				parseDemo(demo.Name, demo.Demo, cfg)
+				demosMap[demo.Name] = demo
+				waitGroup.Done()
+			}()
+		}
+		waitGroup.Wait()
+	}
+
+	demoChunks = nil
+
+	demosJSON, _ := json.MarshalIndent(demosMap, "", "\t")
+	return C.CString(string(demosJSON))
 }
 
 func main() {
-
-	//cfg := dem.DefaultParserConfig
-	//cfg.AdditionalNetMessageCreators = map[int]dem.NetMessageCreator{
-	//	6: func() proto.Message {
-	//		return new(msg.CNETMsg_SetConVar)
-	//	},
-	//}
-	//
-	//var availableMemory = memory_stats.GetMemoryAvailable()
-	//var demosSlice = make([]demoFile, len(flag.Args()))
-	//var demosMap = make(map[string]demoFile)
-	//var totalSize uint64
-	//var waitGroup sync.WaitGroup
-	//var filenames = parseArgs()
-	//
-	//for _, filename := range filenames {
-	//	filename := filename
-	//	waitGroup.Add(1)
-	//	go func() { parseFile(filename, &demosSlice, &totalSize); waitGroup.Done() }()
-	//}
-	//waitGroup.Wait()
-	//
-	///* chunk demos to ensure we don't OOM ourselves */
-	//
-	//var demoChunks [][]demoFile
-	//
-	//if (totalSize / availableMemory) >= 1 {
-	//	chunkCount := totalSize / availableMemory
-	//	chunkSize := len(demosSlice) / int(chunkCount)
-	//
-	//	for i := 0; i < len(demosSlice); i += chunkSize {
-	//		chunkEnd := i + chunkSize
-	//
-	//		if chunkEnd > len(demosSlice) {
-	//			chunkEnd = len(demosSlice)
-	//		}
-	//
-	//		demoChunks = append(demoChunks, demosSlice[i:chunkEnd])
-	//	}
-	//} else {
-	//	demoChunks = append(demoChunks, demosSlice)
-	//}
-	//
-	//fmt.Printf("Available Memory: %dMB\nTotal Demos Size: %dMB\nChunks: %d\n", availableMemory, totalSize, len(demoChunks))
-	//
-	//demosSlice = nil
-	//
-	//for _, demoChunk := range demoChunks {
-	//	for _, demo := range demoChunk {
-	//		demo := demo
-	//		waitGroup.Add(1)
-	//		go func() {
-	//			parseDemo(demo.Name, demo.Demo, cfg)
-	//			demosMap[demo.Name] = demo
-	//			waitGroup.Done()
-	//		}()
-	//	}
-	//	waitGroup.Wait()
-	//}
-	//
-	//demoChunks = nil
-	//
-	//demosJSON, _ := json.MarshalIndent(demosMap, "", "\t")
-	//fmt.Println(string(demosJSON))
+	filenames := parseArgs()
+	if len(filenames) > 1 {
+		result := C.GoString(Dump(filenames))
+		fmt.Println(string(result))
+	} else {
+		return
+	}
 }
