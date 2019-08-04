@@ -4,7 +4,7 @@ import (
 	"C"
 	//"encoding/json"
 	"flag"
-	"fmt"
+	//"fmt"
 	"os"
 	//"sync"
 	"syscall"
@@ -160,11 +160,16 @@ func use(vals ...interface{}) {
 }
 
 //export Dump
-func Dump(a *C.char) *C.char {
-	fmt.Println("dump called")
-	arg := C.GoString(a)
-	fmt.Println(arg, len(arg))
-	return a
+//func Dump(a *C.char) *C.char {
+//	fmt.Println("dump called")
+//	arg := C.GoString(a)
+//	fmt.Println(arg, len(arg))
+//	return a
+//}
+
+//export Dump
+func Dump(a string) *C.char {
+	return C.CString(a)
 }
 
 func main() {
