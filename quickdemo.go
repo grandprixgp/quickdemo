@@ -163,7 +163,7 @@ func use(vals ...interface{}) {
 func Dump(a *C.char) *C.char {
 	fmt.Println("dump called")
 	arg := C.GoString(a)
-	print(len(arg))
+	fmt.Println(arg, len(arg))
 	return a
 }
 
