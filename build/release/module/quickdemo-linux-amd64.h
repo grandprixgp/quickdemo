@@ -69,7 +69,7 @@ extern "C" {
 #endif
 
 
-extern GoString Dump(char* p0);
+extern char* Dump(char* p0);
 
 #ifdef __cplusplus
 }
