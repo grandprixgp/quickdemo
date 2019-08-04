@@ -4,7 +4,7 @@ import (
 	"C"
 	"encoding/json"
 	"flag"
-	//"fmt"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -145,6 +145,7 @@ func parseDemo(filename string, demo *demoInfo, cfg dem.ParserConfig) {
 	}()
 }
 
+// TODO: proper argument parsing, handle errors, etc
 func parseArgs() string {
 	var firstDemo string
 	flag.StringVar(&firstDemo, "d", "", "A space seperated list of demos")
@@ -229,11 +230,11 @@ func Dump(demoFiles string) *C.char {
 }
 
 func main() {
-	//filenames := parseArgs()
-	//if len(filenames) > 1 {
-	//	result := C.GoString(Dump(filenames))
-	//	fmt.Println(string(result))
-	//} else {
-	//	return
-	//}
+	filenames := parseArgs()
+	if len(filenames) > 1 {
+		result := C.GoString(Dump(filenames))
+		fmt.Println(string(result))
+	} else {
+		return
+	}
 }
