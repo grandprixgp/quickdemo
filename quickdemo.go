@@ -4,7 +4,7 @@ import (
 	"C"
 	"encoding/json"
 	"flag"
-	"fmt"
+	//"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -229,11 +229,11 @@ func Dump(demoFiles string) *C.char {
 }
 
 func main() {
-	filenames := parseArgs()
-	if len(filenames) > 1 {
-		result := C.GoString(Dump(filenames))
-		fmt.Println(string(result))
-	} else {
-		return
-	}
+	//filenames := parseArgs()
+	//if len(filenames) > 1 {
+	//	result := C.GoString(Dump(filenames))
+	//	fmt.Println(string(result))
+	//} else {
+	//	return
+	//}
 }
